@@ -6,7 +6,7 @@ COPY fix-apache-mpm.sh /usr/local/bin/fix-apache-mpm.sh
 RUN chmod +x /usr/local/bin/fix-apache-mpm.sh
 
 # Ejecutar el fix DURANTE el build
-RUN /usr/local/bin/fix-apache-mpm.sh
+RUN /usr/local/bin/fix-apache-mpm.sh && echo "MPM configured during image build"
 
 # Instalar dependencias adicionales
 RUN apt-get update && apt-get install -y \

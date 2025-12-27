@@ -1,17 +1,15 @@
 #!/bin/bash
-# Script que arregla Apache MPM modificando archivos directamente
+# Script que arregla Apache MPM - WordPress necesita mpm_prefork (no threaded)
 
-echo "🔧 Fixing Apache MPM by removing config files..."
+echo "🔧 Fixing Apache MPM - enabling mpm_prefork for PHP compatibility..."
 
-# Remover archivos de configuración de MPMs conflictivos
-rm -f /etc/apache2/mods-enabled/mpm_prefork.conf
-rm -f /etc/apache2/mods-enabled/mpm_prefork.load
-rm -f /etc/apache2/mods-enabled/mpm_worker.conf
-rm -f /etc/apache2/mods-enabled/mpm_worker.load
+# Remover TODOS los MPMs primero
+rm -f /etc/apache2/mods-enabled/mpm_*.conf
+rm -f /etc/apache2/mods-enabled/mpm_*.load
 
-# Asegurar que mpm_event esté habilitado
-ln -sf /etc/apache2/mods-available/mpm_event.conf /etc/apache2/mods-enabled/mpm_event.conf
-ln -sf /etc/apache2/mods-available/mpm_event.load /etc/apache2/mods-enabled/mpm_event.load
+# Activar SOLO mpm_prefork (compatible con PHP no-threadsafe)
+ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
+ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
 
-echo "✅ Apache MPM fixed - only mpm_event enabled"
+echo "✅ Apache MPM fixed - only mpm_prefork enabled (PHP-safe)"
 ls -la /etc/apache2/mods-enabled/mpm_*
