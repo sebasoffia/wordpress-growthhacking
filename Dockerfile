@@ -1,28 +1,23 @@
 # Dockerfile para Railway - WordPress con Apache MPM arreglado
 FROM wordpress:latest
 
-# Arreglar Apache MPM antes de iniciar
-RUN set -ex; \
-    # Desactivar MPMs duplicados
-    a2dismod mpm_prefork || true; \
-    a2dismod mpm_worker || true; \
-    # Activar solo mpm_event (mejor para WordPress)
-    a2enmod mpm_event; \
-    # Verificar configuración
-    apache2ctl configtest || true
+# Copiar script de fix de Apache
+COPY docker-entrypoint-fix.sh /usr/local/bin/
 
-# Instalar dependencias adicionales si es necesario
+# Hacer el script ejecutable
+RUN chmod +x /usr/local/bin/docker-entrypoint-fix.sh
+
+# Instalar dependencias adicionales
 RUN apt-get update && apt-get install -y \
     libwebp-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar configuración personalizada de Apache (opcional)
-# COPY apache-config.conf /etc/apache2/conf-available/custom.conf
-# RUN a2enconf custom
-
-# El resto de la configuración de WordPress se maneja por la imagen base
+# Exponer puerto 80
 EXPOSE 80
 
-# Usar el entrypoint original de WordPress
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Usar nuestro script personalizado como entrypoint
+# Este script arreglará Apache cada vez que el contenedor inicie
+ENTRYPOINT ["docker-entrypoint-fix.sh"]
+
+# Comando por defecto
 CMD ["apache2-foreground"]
