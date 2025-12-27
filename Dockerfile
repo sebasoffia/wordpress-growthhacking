@@ -5,6 +5,9 @@ FROM wordpress:latest
 COPY fix-apache-mpm.sh /usr/local/bin/fix-apache-mpm.sh
 RUN chmod +x /usr/local/bin/fix-apache-mpm.sh
 
+# Deshabilitar MPMs no deseados ANTES de ejecutar el fix
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true
+
 # Ejecutar el fix DURANTE el build
 RUN /usr/local/bin/fix-apache-mpm.sh && echo "MPM configured during image build"
 
@@ -16,10 +19,12 @@ RUN apt-get update && apt-get install -y \
 # Crear un wrapper del entrypoint original que ejecute el fix primero
 RUN mv /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-original.sh
 
-# Crear nuevo entrypoint que ejecuta el fix y luego el original
+# Crear nuevo entrypoint mejorado que ejecuta el fix JUSTO ANTES de Apache
 RUN echo '#!/bin/bash\n\
-echo "🔧 Re-applying Apache MPM fix..."\n\
+set -e\n\
+echo "🔧 Applying Apache MPM fix..."\n\
 /usr/local/bin/fix-apache-mpm.sh\n\
+echo ""\n\
 echo "✅ Starting WordPress..."\n\
 exec /usr/local/bin/docker-entrypoint-original.sh "$@"' > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
