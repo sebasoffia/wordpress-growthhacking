@@ -2,10 +2,16 @@
 FROM wordpress:latest
 
 # Copiar script de fix de Apache
-COPY docker-entrypoint-fix.sh /usr/local/bin/
+COPY docker-entrypoint-fix.sh /usr/local/bin/docker-entrypoint-fix.sh
 
 # Hacer el script ejecutable
-RUN chmod +x /usr/local/bin/docker-entrypoint-fix.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-fix.sh && \
+    ls -la /usr/local/bin/docker-entrypoint-fix.sh
+
+# Arreglar Apache MPM directamente en la imagen
+RUN a2dismod mpm_prefork mpm_worker || true && \
+    a2enmod mpm_event && \
+    echo "MPM modules configured during build"
 
 # Instalar dependencias adicionales
 RUN apt-get update && apt-get install -y \
@@ -16,8 +22,7 @@ RUN apt-get update && apt-get install -y \
 EXPOSE 80
 
 # Usar nuestro script personalizado como entrypoint
-# Este script arreglará Apache cada vez que el contenedor inicie
-ENTRYPOINT ["docker-entrypoint-fix.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-fix.sh"]
 
 # Comando por defecto
 CMD ["apache2-foreground"]
