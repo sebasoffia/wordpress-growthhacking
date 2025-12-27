@@ -1,28 +1,32 @@
 # Dockerfile para Railway - WordPress con Apache MPM arreglado
 FROM wordpress:latest
 
-# Copiar script de fix de Apache
-COPY docker-entrypoint-fix.sh /usr/local/bin/docker-entrypoint-fix.sh
+# Copiar script de fix
+COPY fix-apache-mpm.sh /usr/local/bin/fix-apache-mpm.sh
+RUN chmod +x /usr/local/bin/fix-apache-mpm.sh
 
-# Hacer el script ejecutable
-RUN chmod +x /usr/local/bin/docker-entrypoint-fix.sh && \
-    ls -la /usr/local/bin/docker-entrypoint-fix.sh
-
-# Arreglar Apache MPM directamente en la imagen
-RUN a2dismod mpm_prefork mpm_worker || true && \
-    a2enmod mpm_event && \
-    echo "MPM modules configured during build"
+# Ejecutar el fix DURANTE el build
+RUN /usr/local/bin/fix-apache-mpm.sh
 
 # Instalar dependencias adicionales
 RUN apt-get update && apt-get install -y \
     libwebp-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Crear un wrapper del entrypoint original que ejecute el fix primero
+RUN mv /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-original.sh
+
+# Crear nuevo entrypoint que ejecuta el fix y luego el original
+RUN echo '#!/bin/bash\n\
+echo "🔧 Re-applying Apache MPM fix..."\n\
+/usr/local/bin/fix-apache-mpm.sh\n\
+echo "✅ Starting WordPress..."\n\
+exec /usr/local/bin/docker-entrypoint-original.sh "$@"' > /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Exponer puerto 80
 EXPOSE 80
 
-# Usar nuestro script personalizado como entrypoint
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint-fix.sh"]
-
-# Comando por defecto
+# Usar el entrypoint modificado
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]
