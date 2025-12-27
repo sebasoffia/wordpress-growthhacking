@@ -13,6 +13,10 @@ RUN apt-get update && apt-get install -y \
     libwebp-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Copiar script de actualización de URLs (temporal)
+COPY update-urls.php /var/www/html/update-urls.php
+RUN chmod 644 /var/www/html/update-urls.php
+
 # Crear un wrapper del entrypoint original que ejecute el fix primero
 RUN mv /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-original.sh
 
